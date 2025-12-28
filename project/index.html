@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAM - Gestor de marcadores</title>
+    <style>
+        /* Estilos CSS */
+        body {
+            /* AZUL CLARO/BRILLANTE DE REFERENCIA */
+            background-color: #5599ff;
+            font-family: Arial, sans-serif;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            /* AZUL OSCURO PARA EL CONTENEDOR PRINCIPAL */
+            background-color: #000033;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-jam {
+            display: inline-block;
+            /* AZUL INTERMEDIO PARA EL LOGO (destaca en el fondo oscuro) */
+            background-color: #007bff;
+            color: #eeeeee;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px #007bff;
+        }
+
+        /* 1. CONTENEDOR PARA LOS 4 BOTONES NARANJA (Gestión) */
+        .button-group {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0 25px 0;
+            padding: 0;
+            list-style: none;
+        }
+        
+        /* 2. CONTENEDOR PARA EL BOTÓN VERDE (Exportación) */
+        .button-group-export {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0 25px 0;
+        }
+
+        /* Estilo base para todos los botones */
+        button.action-button, button.download-button, select, #file-label {
+            padding: 10px 15px;
+            margin: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+			font-weight: bold;
+        }
+        
+        /* Estilo de los 4 botones naranjas */
+        button.action-button {
+            min-width: 180px; 
+            height: 40px; 
+            background-color: #ffc107;
+            color: #333;
+            flex-shrink: 0;
+			font-weight: bold;
+        }
+
+        /* Estilo del botón verde de descarga */
+        button.download-button {
+            min-width: 300px; 
+            height: 40px;
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Otros estilos... */
+        select { background-color: white; color: #333; }
+        
+        #export-instructions, #results {
+            margin-top: 20px; 
+            padding: 15px; 
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333; 
+            text-align: center; 
+            border-radius: 5px; 
+            min-height: 50px;
+            border-left: 5px solid #007bff;
+            /* <--- SOLUCIÓN AL DESBORDAMIENTO DE URLs LARGAS ---> */
+            word-break: break-all; 
+        }
+
+        .alert-info {
+            background-color: #ffffdd; 
+            padding: 10px; 
+            border-left: 5px solid #ffcc00;
+            margin-bottom: 20px; 
+            color: #333;
+        }
+        #file-label {
+            display: block; 
+            background-color: white; 
+            color: #333; 
+            padding: 15px;
+            margin: 10px auto; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            max-width: 400px;
+            font-weight: bold; 
+            transition: background-color 0.3s, color 0.3s;
+            border: 1px dashed #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="logo-jam">JAM</div>
+    
+    <h2>Gestor de marcadores</h2>
+    
+    <div class="alert-info">
+        <p>⚠️ Por motivos de seguridad, debes exportar un archivo HTML de favoritos desde tu navegador, para que la aplicación lo procese. </p>
+    </div>
+
+    <select id="browser-selector" onchange="showExportInstructions()">
+        <option value="none">1. Selecciona tu navegador </option>
+        <option value="chrome">Google Chrome</option>
+        <option value="firefox">Mozilla Firefox</option>
+        <option value="edge">Microsoft Edge</option>
+        <option value="safari">Safari</option>
+        <option value="opera">Opera</option>
+        <option value="brave">Brave</option>
+    </select>
+
+    <div id="export-instructions">
+        <p>Aquí se muestran las instrucciones para la exportación. Selecciona tu navegador.</p>
+    </div>
+    
+    <hr style="border-color: rgba(255, 255, 255, 0.3);">
+
+    <label for="favorites-file" id="file-label">
+        2. Click para cargar el archivo HTML de favoritos
+    </label>
+    <input type="file" id="favorites-file" accept=".html" onchange="loadFile()" style="display: none;">
+
+    <hr style="border-color: rgba(255, 255, 255, 0.3);">
+	
+    <h3>3. Acciones</h3>
+    <div class="button-group">
+        <button class="action-button" onclick="checkLinks()">Comprobar enlaces (Sintaxis)</button>
+        <button class="action-button" onclick="removeInvalidLinks()">Eliminar enlaces inválidos</button>
+        <button class="action-button" onclick="removeDuplicates()">Eliminar duplicados</button>
+        <button class="action-button" onclick="organizeAndDisplayContent()">Organizar por contenido</button>
+    </div>
+
+    <hr style="border-color: rgba(255, 255, 255, 0.3);">
+    
+    <h3>4. Exportar el resultado final</h3>
+    <div class="button-group-export">
+        <button class="download-button" onclick="downloadBookmarks()">⬇️ Descargar marcadores limpios y organizados</button>
+    </div>
+
+    <h3>Resultados y marcadores cargados</h3>
+    <div id="results">
+        <p>Carga un archivo de favoritos (formato HTML) para empezar a gestionar.</p>
+    </div>
+</div>
+
+<script>
+    let bookmarks = []; 
+    let categorizedBookmarks = null; 
+
+    function showExportInstructions() {
+        const selector = document.getElementById('browser-selector');
+        const browser = selector.value;
+        const instructionsDiv = document.getElementById('export-instructions');
+        
+        const instructions = {
+            'chrome': `<h4>Guía de Exportación de Google Chrome:</h4><ol><li>Menú de **tres puntos** (⋮) > **marcadores** > **Administrador de marcadores**.</li><li>En el Administrador, clic en **tres puntos** (⋮) > **Exportar marcadores**.</li></ol>`,
+            'firefox': `<h4>Guía de Exportación de Mozilla Firefox:</h4><ol><li>Menú (☰) > **marcadores** > **Administrar marcadores**.</li><li>En la ventana, **Importar y respaldar** > **Exportar marcadores a HTML...**.</li></ol>`,
+            'edge': `<h4>Guía de Exportación de Microsoft Edge:</h4><ol><li>Icono de **favoritos (★)** > **Más opciones (⋮)** > **Exportar favoritos**.</li></ol>`,
+            'safari': `<h4>Guía de Exportación de Apple Safari:</h4><ol><li>Barra de menú superior: **archivos** > **Exportar marcadores...**.</li></ol>`,
+            'opera': `<h4>Guía de Exportación de Opera:</h4><ol><li>Menú de **tres líneas** (☰) en la esquina superior izquierda > **marcadores** > **Exportar marcadores**.</li></ol>`,
+            'brave': `<h4>Guía de Exportación de Brave:</h4><ol><li>Menú principal (☰) > **marcadores** > **Administrador de marcadores**.</li><li>En el Administrador, clic en el menú **tres puntos** (⋮) > **Exportar marcadores**.</li></ol>`
+        };
+
+        let htmlContent = instructions[browser] || '<p>Aquí se muestran las instrucciones para la exportación. Selecciona tu navegador.</p>';
+        instructionsDiv.innerHTML = htmlContent;
+    }
+
+    function loadFile() {
+        const fileInput = document.getElementById('favorites-file');
+        const fileLabel = document.getElementById('file-label');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            fileLabel.textContent = '2. Click para cargar el archivo HTML de favoritos';
+            fileLabel.style.backgroundColor = 'white';
+            fileLabel.style.color = '#333';
+            document.getElementById('results').innerHTML = '<p>Por favor, selecciona un archivo de favoritos HTML.</p>';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const htmlContent = e.target.result;
+            parseBookmarks(htmlContent);
+            categorizedBookmarks = null; 
+            
+            fileLabel.textContent = `✅ archivo cargado: ${file.name}`;
+            fileLabel.style.backgroundColor = '#28a745'; 
+            fileLabel.style.color = 'white';
+        };
+        reader.readAsText(file);
+    }
+
+    function parseBookmarks(htmlContent) {
+        bookmarks = [];
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        
+        const links = doc.querySelectorAll('A');
+
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            const title = link.textContent.trim() || href;
+
+            if (href && href.startsWith('http')) { 
+                bookmarks.push({
+                    url: href,
+                    title: title,
+                    status: 'OK' 
+                });
+            }
+        });
+
+        displayBookmarks();
+        alert(`¡${bookmarks.length} marcadores válidos cargados con éxito!`);
+    }
+
+    function displayBookmarks() {
+        const resultsDiv = document.getElementById('results');
+        if (bookmarks.length === 0) {
+            resultsDiv.innerHTML = '<p>No hay marcadores cargados o válidos.</p>';
+            return;
+        }
+
+        let html = '<h4>Marcadores cargados (Previsualización):</h4><ul>';
+        
+        if (categorizedBookmarks) {
+             for (const category in categorizedBookmarks) {
+                const count = categorizedBookmarks[category].length;
+                const statusColor = categorizedBookmarks[category].some(b => b.status === 'inválido') ? 'color: red;' : '';
+                html += `<li>📁 <strong style="${statusColor}">${category}</strong> (${count} marcadores)<ul>`;
+                categorizedBookmarks[category].slice(0, 5).forEach(b => {
+                     html += `<li>[${b.status}] ${b.title}: <a href="${b.url}" target="_blank">${b.url}</a></li>`;
+                });
+                if (count > 5) { html += `<li>...y ${count - 5} más en esta carpeta.</li>`; }
+                html += '</ul></li>';
+            }
+        } else {
+            bookmarks.slice(0, 50).forEach(b => { 
+                const statusColor = b.status === 'inválido' ? 'color: red;' : '';
+                html += `<li style="${statusColor}">[${b.status}] <strong>${b.title}</strong>: <a href="${b.url}" target="_blank">${b.url}</a></li>`;
+            });
+            if (bookmarks.length > 50) {
+                html += `<li>... y ${bookmarks.length - 50} más.</li>`;
+            }
+        }
+        
+        html += '</ul>';
+        resultsDiv.innerHTML = html;
+    }
+
+    async function checkLinks() {
+        if (bookmarks.length === 0) {
+            alert('Carga los marcadores primero.');
+            return;
+        }
+        
+        alert('⚠️ Aviso: La verificación de enlaces rotos se basa en la sintaxis (http/https). La comprobación HTTP en tiempo real está bloqueada por la seguridad del navegador (CORS).');
+
+        bookmarks.forEach(b => {
+            if (b.url.startsWith('http')) {
+                 b.status = 'OK';
+            } else {
+                 b.status = 'inválido';
+            }
+        });
+        
+        categorizedBookmarks = null;
+        displayBookmarks();
+    }
+    
+    function removeInvalidLinks() {
+        if (bookmarks.length === 0) {
+            alert('Carga marcadores primero.');
+            return;
+        }
+
+        if (bookmarks.some(b => b.status === 'Pendiente' || !b.status.includes('OK'))) {
+              checkLinks();
+        }
+
+        const validBookmarks = bookmarks.filter(b => b.status === 'OK');
+        const removedCount = bookmarks.length - validBookmarks.length;
+        
+        bookmarks = validBookmarks;
+        categorizedBookmarks = null;
+
+        alert(`¡enlaces inválidos eliminados! Se eliminaron ${removedCount} marcadores. Total actual: ${bookmarks.length}.`);
+        displayBookmarks();
+    }
+
+    function removeDuplicates() {
+        if (bookmarks.length === 0) {
+            alert('Carga marcadores primero.');
+            return;
+        }
+
+        const seenUrls = new Set();
+        const uniqueBookmarks = [];
+        let removedCount = 0;
+
+        bookmarks.forEach(b => {
+            if (!seenUrls.has(b.url)) {
+                seenUrls.add(b.url);
+                uniqueBookmarks.push(b);
+            } else {
+                removedCount++;
+            }
+        });
+
+        bookmarks = uniqueBookmarks;
+        categorizedBookmarks = null; 
+        alert(`¡duplicados eliminados! Se eliminaron ${removedCount} marcadores. Total actual: ${bookmarks.length}.`);
+        displayBookmarks();
+    }
+
+    function organizeAndDisplayContent() {
+        if (bookmarks.length === 0) {
+            alert('Carga marcadores primero.');
+            return;
+        }
+
+        const categories = {};
+        const keywords = {
+            'Programación y Desarrollo': [/\bgithub\b/i, /\bstack\w*flow\b/i, /\bjavascript\b/i, /\bpython\b/i, /\bcss\b/i, /\bhtml\b/i, /\bcode\b/i, /\bdev\b/i],
+            'Noticias y Medios': [/\bnews\b/i, /\bdiario\b/i, /\bpress\b/i, /\bbillboard\b/i, /\bcnn\b/i, /\bpaís\b/i],
+            'Compras y Tiendas': [/\bamazon\b/i, /\bebay\b/i, /\bshop\b/i, /\btienda\b/i, /\bcompra\b/i],
+            'Redes Sociales': [/\bfacebook\b/i, /\btwitter\b/i, /\blinke?din\b/i, /\binstagram\b/i, /\bred social\b/i],
+            'Multimedia y Entretenimiento': [/\bnetf?lix\b/i, /\bhbo\b/i, /\bspotify\b/i, /\bmusic\b/i, /\bvideo\b/i, /\byoutube\b/i, /\bpelículas?\b/i],
+            'Referencia y Documentación': [/\bwiki\b/i, /\bmanual\b/i, /\bdiccionario\b/i, /\breference\b/i],
+            'General/Otros': []
+        };
+        
+        bookmarks.forEach(b => {
+            let foundCategory = 'General/Otros';
+            const text = (b.title + ' ' + b.url).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+            for (const category in keywords) {
+                if (keywords[category].some(keyword => keyword.test(text))) {
+                    foundCategory = category;
+                    break; 
+                }
+            }
+
+            if (!categories[foundCategory]) {
+                categories[foundCategory] = [];
+            }
+            categories[foundCategory].push(b);
+        });
+
+        categorizedBookmarks = categories; 
+        displayBookmarks(); 
+        alert('Organización sugerida realizada. Ahora puede descargar el nuevo archivo.');
+    }
+
+
+    function downloadBookmarks() {
+        if (bookmarks.length === 0) {
+            alert('No hay marcadores para descargar. Carga un archivo primero.');
+            return;
+        }
+
+        let content = '';
+
+        if (categorizedBookmarks) {
+            for (const category in categorizedBookmarks) {
+                content += `<DT><H3 ADD_DATE="${Date.now() / 1000}">${category}</H3>\n<DL><p>\n`;
+                
+                categorizedBookmarks[category].forEach(b => {
+                    content += `<DT><A HREF="${b.url}" ADD_DATE="${Date.now() / 1000}">${b.title}</A>\n`;
+                });
+
+                content += `</DL><p>\n`;
+            }
+        } else {
+            bookmarks.forEach(b => {
+                content += `<DT><A HREF="${b.url}" ADD_DATE="${Date.now() / 1000}">${b.title}</A>\n`;
+            });
+        }
+        
+        const finalHTML = `
+            <!DOCTYPE NETSCAPE-Bookmark-file-1>
+            <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+            <TITLE>marcadores JAM - ${new Date().toLocaleDateString()}</TITLE>
+            <H1>marcadores</H1>
+            <DL><p>
+            ${content}
+            </DL><p>
+        `;
+
+        const blob = new Blob([finalHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `JAM_marcadores_Organizados_${new Date().toISOString().slice(0, 10)}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert('¡Descarga iniciada! El archivo HTML final se ha guardado.');
+    }
+
+    document.addEventListener('DOMContentLoaded', showExportInstructions);
+</script>
+
+</body>
+</html>
